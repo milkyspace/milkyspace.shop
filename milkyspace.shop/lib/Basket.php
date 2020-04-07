@@ -154,7 +154,7 @@ class Basket
     }
 
     public $last_error;
-    
+
     public function save($userID = null, $username = null, $phone = null, $email = null, $details = [], $fileList = [])
     {
         global $DB;
@@ -169,7 +169,7 @@ class Basket
             return null;
         }
 
-        $saleID = $DB->Insert('original_sale', [
+        $saleID = $DB->Insert('milkyspace_order', [
             'USER_ID' => $userID ?: 'NULL',
             'PRICE' => $this->price(),
             'USERNAME' => $username ? "'" . $DB->db_Conn->escape_string($username) . "'" : 'NULL',
@@ -185,14 +185,14 @@ class Basket
         }
 
         foreach ($fileList as $fileID) {
-            $DB->Insert('original_sale_files', [
+            $DB->Insert('milkyspace_order_files', [
                 'SALE_ID' => $saleID,
                 'FILE_ID' => $fileID,
             ]);
         }
 
         foreach ($basket as $item) {
-            $DB->Insert('original_sale_basket', [
+            $DB->Insert('milkyspace_order_basket', [
                 'SALE_ID' => $saleID,
                 'PRODUCT_ID' => $item['PRODUCT_ID'],
                 'PRICE' => $item['PRICE'],
@@ -219,24 +219,24 @@ class Basket
         $saleID = (int)$saleID;
         $sql = <<<SQL
 SELECT 
-    `original_sale`.`ID`                          AS `ID`,
-    `original_sale`.`USER_ID`                     AS `USER_ID`,
-    `original_sale`.`PRICE`                       AS `PRICE`,
-    `original_sale`.`USERNAME`                    AS `USERNAME`,
-    `original_sale`.`PHONE`                       AS `PHONE`,
-    `original_sale`.`EMAIL`                       AS `EMAIL`,
-    `original_sale`.`DETAILS`                     AS `DETAILS`,
-    `original_sale`.`CREATED_AT`                  AS `CREATED_AT`,
-    GROUP_CONCAT(`original_sale_files`.`FILE_ID`) AS `FILES`
+    `milkyspace_order`.`ID`                          AS `ID`,
+    `milkyspace_order`.`USER_ID`                     AS `USER_ID`,
+    `milkyspace_order`.`PRICE`                       AS `PRICE`,
+    `milkyspace_order`.`USERNAME`                    AS `USERNAME`,
+    `milkyspace_order`.`PHONE`                       AS `PHONE`,
+    `milkyspace_order`.`EMAIL`                       AS `EMAIL`,
+    `milkyspace_order`.`DETAILS`                     AS `DETAILS`,
+    `milkyspace_order`.`CREATED_AT`                  AS `CREATED_AT`,
+    GROUP_CONCAT(`milkyspace_order_files`.`FILE_ID`) AS `FILES`
 
-FROM `original_sale`
+FROM `milkyspace_order`
 
-LEFT OUTER JOIN `original_sale_files`
-    ON `original_sale_files`.`SALE_ID` = `original_sale`.`ID`
+LEFT OUTER JOIN `milkyspace_order_files`
+    ON `milkyspace_order_files`.`SALE_ID` = `milkyspace_order`.`ID`
 
 WHERE `ID` = {$saleID}
 
-GROUP BY `original_sale`.`ID`
+GROUP BY `milkyspace_order`.`ID`
 SQL;
 
         $sale = $DB->Query($sql)->GetNext(true, true) ?: null;
@@ -261,20 +261,20 @@ SQL;
 
         $sql = <<<SQL
 SELECT
-    `original_sale_basket`.`ID`            AS `ID`,
-    `original_sale_basket`.`SALE_ID`       AS `SALE_ID`,
-    `original_sale_basket`.`PRODUCT_ID`    AS `PRODUCT_ID`,
+    `milkyspace_order_basket`.`ID`            AS `ID`,
+    `milkyspace_order_basket`.`SALE_ID`       AS `SALE_ID`,
+    `milkyspace_order_basket`.`PRODUCT_ID`    AS `PRODUCT_ID`,
     `b_iblock_element`.`IBLOCK_ID`         AS `PRODUCT_IBLOCK_ID`,
     `b_iblock_element`.`IBLOCK_SECTION_ID` AS `PRODUCT_IBLOCK_SECTION_ID`,
     `b_iblock_element`.`NAME`              AS `PRODUCT_NAME`,
-    `original_sale_basket`.`PRICE`         AS `PRICE`,
-    `original_sale_basket`.`COUNT`         AS `COUNT`,
-    `original_sale_basket`.`DETAILS`       AS `DETAILS`
+    `milkyspace_order_basket`.`PRICE`         AS `PRICE`,
+    `milkyspace_order_basket`.`COUNT`         AS `COUNT`,
+    `milkyspace_order_basket`.`DETAILS`       AS `DETAILS`
 
-FROM `original_sale_basket`
+FROM `milkyspace_order_basket`
 
 INNER JOIN `b_iblock_element` 
-    ON `b_iblock_element`.`ID` = `original_sale_basket`.`PRODUCT_ID`
+    ON `b_iblock_element`.`ID` = `milkyspace_order_basket`.`PRODUCT_ID`
 
 WHERE `SALE_ID` = {$saleID}
 SQL;
