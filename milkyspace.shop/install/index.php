@@ -56,6 +56,14 @@ class milkyspace_shop extends CModule
             \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopBasketTable')->getDBTableName())):
             \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopBasketTable')->createDbTable();
         endif;
+        if (!\Bitrix\Main\Application::getConnection(milkyspace\shop\ShopProductTable::getConnectionName())->isTableExists(
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopProductTable')->getDBTableName())):
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopProductTable')->createDbTable();
+        endif;
+        if (!\Bitrix\Main\Application::getConnection(milkyspace\shop\ShopProductTable::getConnectionName())->isTableExists(
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\BasketProductUsTable')->getDBTableName())):
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\BasketProductUsTable')->createDbTable();
+        endif;
     }
 
     function UnInstallDB()
@@ -64,7 +72,16 @@ class milkyspace_shop extends CModule
         \Bitrix\Main\Application::getConnection(\milkyspace\shop\ShopBasketTable::getConnectionName())->queryExecute(
             "DROP TABLE IF EXISTS ".\Bitrix\Main\Entity\Base::getInstance(
                 '\milkyspace\shop\ShopBasketTable')->getDBTableName());
+        \Bitrix\Main\Application::getConnection(\milkyspace\shop\ShopProductTable::getConnectionName())->queryExecute(
+            "DROP TABLE IF EXISTS ".\Bitrix\Main\Entity\Base::getInstance(
+                '\milkyspace\shop\ShopBasketTable')->getDBTableName());
+        \Bitrix\Main\Application::getConnection(\milkyspace\shop\BasketProductUsTable::getConnectionName())->queryExecute(
+            "DROP TABLE IF EXISTS ".\Bitrix\Main\Entity\Base::getInstance(
+                '\milkyspace\shop\BasketProductUsTable')->getDBTableName());
         \Bitrix\Main\Config\Option::delete(self::MODULE_ID);
+
+        global $DB;
+        $DB->RunSQLBatch(__DIR__ . '/uninstall.sql');
     }
 
     function InstallEvents()

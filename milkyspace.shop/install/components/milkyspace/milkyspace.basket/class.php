@@ -1,8 +1,8 @@
 <?
 
 use Bitrix\Main\Service\GeoIp\Manager;
-use milkyspace\shop as milkyspaceShop;
 use \Bitrix\Main\Loader;
+use \milkyspace\shop\Basket;
 
 class Showbasket extends CBitrixComponent
 {
@@ -23,19 +23,10 @@ class Showbasket extends CBitrixComponent
     {
         try {
             $this->checkModules();
-            $basket = new \milkyspace\shop\Basket();
-            $resultAdd = $basket->add(23);
-            if ($resultAdd != null):
-                if ($resultAdd->isSuccess()) echo 'Товар добавлен с id: ' . $resultAdd->getId().' Количество: ';
-                print_r($resultAdd->getData()['COUNT']);
-            endif;
-            global $USER;
-            $userId = \md5($USER->GetID()) ?: \md5(Manager::getRealIp());
-            $now_basket = milkyspaceShop\ShopBasketTable::getList(array(
-                'filter' => array('USER' => $userId)
-            ))->fetchAll() ?: null;
-
-            $this->show($now_basket);
+            $action = new \milkyspace\shop\Basket();
+            $basket = $action->addBasket();
+            $this->arResult = $basket;
+            $this->show($this->arResult);
             $this->includeComponentTemplate();
         } catch (\Exception $e) {
             ShowError($e->getMessage());

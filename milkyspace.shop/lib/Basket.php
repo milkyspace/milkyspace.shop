@@ -39,76 +39,52 @@ class Basket
         return $price;
     }
 
-    public function get()
+    private function userId()
     {
-        if ($this->_basket === null) {
-            $this->_basket = $_SESSION[self::SESSION_KEY] ?: [];
-
-            foreach ($this->_basket as $key => &$item) {
-                $item['PRICE'] = $this->productPrice($item['PRODUCT_ID'], $item['DETAILS'] ?: []);
-            }
-
-            unset($item);
-
-            $this->set($this->_basket);
-        }
-
-        return $this->_basket;
+        global $USER;
+        return $userId = \md5($USER->GetID()) ?: \md5(Manager::getRealIp());
     }
 
-    private function set($basket = [])
+    public function addBasket($returnId = false)
     {
-        $_SESSION[self::SESSION_KEY] = $this->_basket = $basket;
+        $milkBask = ShopBasketTable::getList(array(
+            'filter' => array('USER' => $this->userId())
+        ))->fetch() ?: null;
+
+        if ($milkBask == null):
+            $result = ShopProductTable::add(array(
+                'USER_ID' => $this->userId(),
+            ));
+            if ($returnId) return $result->getId();
+            return null;
+        endif;
+        $basket = BasketProductUsTable::getList(array(
+            'filter' => array('BASKET_ID' => $milkBask['ID']),
+        ));
+        if ($returnId) return $milkBask['ID'];
+        return $basket->fetchAll();
     }
 
     public function add($productID, $count = 1)
     {
-        global $USER;
-        $userId = \md5($USER->GetID()) ?: \md5(Manager::getRealIp());
-
         $productID = (int)$productID;
         $count = (int)$count;
 
         if ($count <= 0) {
             return null;
         }
-
-//        $basket = $this->get();
-//        $key = $this->key($productID);
-
-//        $basket[$key] = [
-//            'PRODUCT_ID' => $productID,
-//            'PRICE' => $this->productPrice($productID),
-//            'COUNT' => $count,
-//        ];
-
-//        $this->set($basket);
-
-        $milkBask = ShopBasketTable::getList(array(
-            'filter' => array('USER' => $userId)
-        ));
-        while ($row = $milkBask->fetch()) {
-            $milkBasket[] = $row['PRODUCT'];
-        }
-
-        if ($milkBasket == null && !in_array($productID, $milkBasket)):
-            $result = ShopBasketTable::add(array(
-                'USER' => $userId,
-                'NAME' => 'товар с ID ' . $productID,
-                'PRODUCT' => $productID,
-                'COUNT' => $count,
+        $basket = $this->addBasket(true);
+        $product = BasketProductUsTable::getList(array(
+            'filter' => array('BASKET_ID' => $basket, 'PRODUCT_ID' => $productID),
+        ))->fetch() ?: false;
+        if (!$product)
+            $product = BasketProductUsTable::add(array(
+                'BASKET_ID' => $basket,
+                'PRODUCT_ID' => $productID,
+                'COUNT' => new \Bitrix\Main\DB\SqlExpression('?# + '.$count,'COUNT')
             ));
-            return $result;
-        elseif (in_array($productID, $milkBasket)):
-            $milkBask = ShopBasketTable::getList(array(
-                'filter' => array('PRODUCT' => $productID)
-            ))->fetch();
-            $result = ShopBasketTable::update($milkBask['ID'], array(
-                'COUNT' => $milkBask['COUNT'] + $count,
-                'PRODUCT' => $productID,
-            ));
-            return $result;
-        endif;
+
+        $price = $this->productPrice($productID);
 
         return false;
     }

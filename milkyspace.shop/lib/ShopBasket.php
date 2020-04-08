@@ -20,18 +20,14 @@ class ShopBasketTable extends Entity\DataManager
             )),
             new Entity\StringField('USER', array(
                 'required' => true,
+                'validation' => function () {
+                    return array(
+                        new Entity\Validator\Unique,
+                    );
+                }
             )),
-            new Entity\StringField('NAME', array(
-                'required' => true,
-            )),
-            new Entity\DateTimeField('DATE',array(
+            new Entity\DateTimeField('DATE', array(
                 'default_value' => new \Bitrix\Main\Type\DateTime(),
-            )),
-            new Entity\IntegerField('PRODUCT', array(
-                'required' => true,
-            )),
-            new Entity\IntegerField('COUNT', array(
-                'required' => true,
             )),
         );
     }
