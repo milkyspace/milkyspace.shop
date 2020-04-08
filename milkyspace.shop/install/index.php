@@ -1,6 +1,7 @@
 <?
 
 use Bitrix\Main\Localization\Loc;
+use Bitrix\Main\Loader;
 
 Loc::loadMessages(__FILE__);
 
@@ -10,7 +11,7 @@ if (class_exists("milkyspace_shop"))
 class milkyspace_shop extends CModule
 {
     const MODULE_ID = 'milkyspace.shop';
-    const MODULE_NAME = 'Магазин';
+    const MODULE_NAME = 'Магазин milkyspace';
     const MODULE_DESCRIPTION = 'Магазин для редакции "Старт"';
 
     public $MODULE_ID = self::MODULE_ID;
@@ -18,6 +19,11 @@ class milkyspace_shop extends CModule
     public $MODULE_DESCRIPTION = self::MODULE_DESCRIPTION;
     public $MODULE_VERSION = '1.0.0';
     public $MODULE_VERSION_DATE = '2020-04-07';
+
+    private static function isVersionD7()
+    {
+        return CheckVersion(Bitrix\Main\ModuleManager::getVersion("main"), "14.00.00");
+    }
 
     private static function isLocal()
     {
@@ -45,21 +51,20 @@ class milkyspace_shop extends CModule
 
     function InstallDB()
     {
-        \Bitrix\Main\Application::getConnection()->queryExecute("CREATE TABLE IF NOT EXISTS shop_basket(
-ID int NOT NULL AUTO_INCREMENT,
-USER varchar(255) NOT NULL,
-DATE date NOT NULL,
-PRIMARY KEY(ID))"
-        );
-        \Bitrix\Main\ModuleManager::registerModule($this->MODULE_ID);
-        return true;
+        Loader::includeModule(self::MODULE_ID);
+        if (!\Bitrix\Main\Application::getConnection(milkyspace\shop\ShopBasketTable::getConnectionName())->isTableExists(
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopBasketTable')->getDBTableName())):
+            \Bitrix\Main\Entity\Base::getInstance('milkyspace\shop\ShopBasketTable')->createDbTable();
+        endif;
     }
 
     function UnInstallDB()
     {
-        \Bitrix\Main\Application::getConnection()->queryExecute("DROP TABLE IF EXISTS shop_basket");
-        \Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
-        return true;
+        Loader::includeModule(self::MODULE_ID);
+        \Bitrix\Main\Application::getConnection(\milkyspace\shop\ShopBasketTable::getConnectionName())->queryExecute(
+            "DROP TABLE IF EXISTS ".\Bitrix\Main\Entity\Base::getInstance(
+                '\milkyspace\shop\ShopBasketTable')->getDBTableName());
+        \Bitrix\Main\Config\Option::delete(self::MODULE_ID);
     }
 
     function InstallEvents()
@@ -90,17 +95,36 @@ PRIMARY KEY(ID))"
 
     function DoInstall()
     {
-        $this->InstallDB();
-        $this->InstallEvents();
-        $this->InstallFiles();
-        $GLOBALS["errors"] = $this->errors;
+        global $APPLICATION;
+        if ($this->isVersionD7()) {
+            \Bitrix\Main\ModuleManager::registerModule($this->MODULE_ID);
+            $this->InstallDB();
+            $this->InstallEvents();
+            $this->InstallFiles();
+            $GLOBALS["errors"] = $this->errors;
+        } else {
+            $APPLICATION->ThrowException('Ошибка. Нет поддержки D7.');
+        }
+        $APPLICATION->IncludeAdminFile('Установка milkyspace.shop', __DIR__ . '/step.php');
     }
 
     function DoUninstall()
     {
-        $this->UnInstallEvents();
-        $this->UnInstallDB();
-        $this->UnInstallFiles();
+        global $APPLICATION;
+        $request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
+
+        if (!$request['step'] || $request['step'] < 2):
+            $APPLICATION->IncludeAdminFile('Удаление milkyspace.shop', __DIR__ . '/unstep.php');
+        elseif ($request['step'] == 2):
+            $this->UnInstallEvents();
+            $this->UnInstallFiles();
+
+            //if ($request['table'] == 'Y'):
+                $this->UnInstallDB();
+            //endif;
+            \Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
+            $APPLICATION->IncludeAdminFile('Удаление milkyspace.shop', __DIR__ . '/unstep2.php');
+        endif;
     }
 }
 

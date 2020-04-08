@@ -66,21 +66,6 @@ class Basket
         global $USER;
         $userId = \md5($USER->GetID()) ?: \md5(Manager::getRealIp());
 
-        $milkBask = ShopBasketTable::getList(array(
-            'filter' => array('USER' => $userId)
-        ));
-        while ($row = $milkBask->fetch())
-        {
-            $milkBasket[] = $row;
-        }
-
-        if ($milkBasket == null):
-            ShopBasketTable::add(array(
-                'USER' => $userId,
-                'DATE' => new \Bitrix\Main\Type\Date('2020-04-07', 'Y-m-d')
-            ));
-        endif;
-
         $productID = (int)$productID;
         $count = (int)$count;
 
@@ -89,17 +74,43 @@ class Basket
         }
 
 //        $basket = $this->get();
-        $key = $this->key($productID);
+//        $key = $this->key($productID);
 
-        $basket[$key] = [
-            'PRODUCT_ID' => $productID,
-            'PRICE' => $this->productPrice($productID),
-            'COUNT' => $count,
-        ];
+//        $basket[$key] = [
+//            'PRODUCT_ID' => $productID,
+//            'PRICE' => $this->productPrice($productID),
+//            'COUNT' => $count,
+//        ];
 
-        $this->set($basket);
+//        $this->set($basket);
 
-        return $key;
+        $milkBask = ShopBasketTable::getList(array(
+            'filter' => array('USER' => $userId)
+        ));
+        while ($row = $milkBask->fetch()) {
+            $milkBasket[] = $row['PRODUCT'];
+        }
+
+        if ($milkBasket == null && !in_array($productID, $milkBasket)):
+            $result = ShopBasketTable::add(array(
+                'USER' => $userId,
+                'NAME' => 'товар с ID ' . $productID,
+                'PRODUCT' => $productID,
+                'COUNT' => $count,
+            ));
+            return $result;
+        elseif (in_array($productID, $milkBasket)):
+            $milkBask = ShopBasketTable::getList(array(
+                'filter' => array('PRODUCT' => $productID)
+            ))->fetch();
+            $result = ShopBasketTable::update($milkBask['ID'], array(
+                'COUNT' => $milkBask['COUNT'] + $count,
+                'PRODUCT' => $productID,
+            ));
+            return $result;
+        endif;
+
+        return false;
     }
 
     public function remove($key)

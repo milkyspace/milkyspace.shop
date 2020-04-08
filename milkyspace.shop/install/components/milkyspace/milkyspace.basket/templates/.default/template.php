@@ -12,4 +12,4 @@
 /** @var CBitrixComponent $component */
 $this->setFrameMode(true);
 ?>
-<pre><?print_r($arResult)?></pre>
+<!--<pre>--><?//print_r($arResult)?><!--</pre>-->
